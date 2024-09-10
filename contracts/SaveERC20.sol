@@ -6,8 +6,8 @@ import "./interfaces/IERC20.sol";
 
 contract SaveERC20{
 
-    address owner;
-    address tokenAddress;
+    address public owner;
+    address public tokenAddress;
     mapping (address => uint256) balance;
 
     modifier onlyOwner(){
