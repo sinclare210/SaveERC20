@@ -20,7 +20,7 @@ contract SaveERC20{
         tokenAddress = _tokenAddress;
     }
 
-    event trnasferSuccessful(address indexed user, uint256 indexed amount);
+    event depositSuccessful(address indexed user, uint256 indexed amount);
     event withdrawSuccessful(address indexed  user, uint256 indexed amount);
 
     function deposit(uint256 _amount) external {
@@ -30,7 +30,7 @@ contract SaveERC20{
        
         IERC20(tokenAddress).transferFrom(msg.sender, address(this), _amount);
          balance[msg.sender] += _amount;
-        emit trnasferSuccessful(msg.sender, _amount);
+        emit depositSuccessful(msg.sender, _amount);
     }
 
     function withdraw(uint256 _amount) external {

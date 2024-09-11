@@ -4,7 +4,7 @@ import {
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
-import hre from "hardhat";
+import hre, { ethers } from "hardhat";
 
 describe("Lock", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -32,7 +32,7 @@ describe("Lock", function () {
     const  SaveERC20 = await hre.ethers.getContractFactory("SaveERC20");
     const saveErc20 = await SaveERC20.deploy(token);
 
-    return {saveErc20, owner, otherAccount };
+    return {saveErc20, owner, otherAccount,token };
   }
 
   describe("Deployment", function () {
@@ -42,30 +42,79 @@ describe("Lock", function () {
       expect(await saveErc20.owner()).to.equal(owner);
     });
 
-    // it("Should set the right owner", async function () {
-    //   const { lock, owner } = await loadFixture(deployOneYearLockFixture);
+     it("Check if the tokenaddress is correct", async function () {
+      const {saveErc20, owner,token } = await loadFixture(deploySaveERC20);
 
-    //   expect(await lock.owner()).to.equal(owner.address);
-    // });
+      expect(await saveErc20.tokenAddress()).to.equal(token);
+    });
 
-    // it("Should receive and store the funds to lock", async function () {
-    //   const { lock, lockedAmount } = await loadFixture(
-    //     deployOneYearLockFixture
-    //   );
+ 
+  });
 
-    //   expect(await hre.ethers.provider.getBalance(lock.target)).to.equal(
-    //     lockedAmount
-    //   );
-    // });
+    describe("Deposit", function () {
+    it("Should deposit correctly", async function () {
+      const {saveErc20, owner, token, otherAccount } = await loadFixture(deploySaveERC20);
 
-    // it("Should fail if the unlockTime is not in the future", async function () {
-    //   // We don't use the fixture here because we want a different deployment
-    //   const latestTime = await time.latest();
-    //   const Lock = await hre.ethers.getContractFactory("Lock");
-    //   await expect(Lock.deploy(latestTime, { value: 1 })).to.be.revertedWith(
-    //     "Unlock time should be in the future"
-    //   );
-    // });
+      const trfAmount = ethers.parseUnits("100",18);
+      await token.transfer(otherAccount, trfAmount);
+      expect(await token.balanceOf(otherAccount)).to.equal(trfAmount);
+
+      await token.connect(otherAccount).approve(saveErc20, trfAmount);
+      const otherAccountBalBefore = await token.balanceOf(otherAccount);
+      const depositAmount = ethers.parseUnits("10", 18);
+      await saveErc20.connect(otherAccount).deposit(depositAmount);
+      expect(await token.balanceOf(otherAccount)).to.equal(otherAccountBalBefore - depositAmount);
+
+      expect(await saveErc20.connect(otherAccount).myBalance()).to.equal(depositAmount);
+      expect(await saveErc20.getContractBalance()).to.equal(depositAmount);
+
+      
+        
+    });
+     it("Withdraw sucessful should work", async function () {
+      const {saveErc20, owner, token, otherAccount } = await loadFixture(deploySaveERC20);
+
+      const trfAmount = ethers.parseUnits("100",18);
+      await token.transfer(otherAccount, trfAmount);
+      expect(await token.balanceOf(otherAccount)).to.equal(trfAmount);
+
+      await token.connect(otherAccount).approve(saveErc20, trfAmount);
+      const depositAmount = ethers.parseUnits("10", 18);
+    
+
+      
+
+       await expect(saveErc20.connect(otherAccount).deposit(depositAmount))
+        .to.emit(saveErc20, "depositSuccessful")
+        .withArgs(otherAccount.address,depositAmount);
+
+
+    });
+
+     it("Can't deposit zero", async function () {
+      const {saveErc20, owner, token, otherAccount } = await loadFixture(deploySaveERC20);
+
+      const trfAmount = ethers.parseUnits("100",18);
+      await token.transfer(otherAccount, trfAmount);
+      expect(await token.balanceOf(otherAccount)).to.equal(trfAmount);
+
+      await token.connect(otherAccount).approve(saveErc20, trfAmount);
+      const depositAmount = ethers.parseUnits("0");
+    
+
+      
+    await expect(
+        saveErc20.connect(otherAccount).deposit(depositAmount)
+      ).to.be.revertedWith("Can't deposit zero");
+
+
+
+    });
+
+
+
+
+ 
   });
 
   // describe("Withdrawals", function () {
