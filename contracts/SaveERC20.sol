@@ -6,14 +6,18 @@ import "./interfaces/IERC20.sol";
 
 contract SaveERC20{
 
+    error AddressZeroDetected();
+    error CantSendZero();
+    error InsufficientFunds();
+    error NotOwner();
+    error CantSendToZeroAddress();
+
+
     address public owner;
     address public tokenAddress;
     mapping (address => uint256) balance;
 
-    modifier onlyOwner(){
-        require(owner == msg.sender);
-        _;
-    }
+   
 
     constructor(address _tokenAddress){
         owner = msg.sender;
@@ -24,9 +28,10 @@ contract SaveERC20{
     event withdrawSuccessful(address indexed  user, uint256 indexed amount);
 
     function deposit(uint256 _amount) external {
-        require(msg.sender != address(0), "Zero address detected");
-        require(_amount > 0,"Can't deposit zero");
-        require(IERC20(tokenAddress).balanceOf(msg.sender) >= _amount, "Insufficeint Balance");
+     if(msg.sender == address(0)){revert AddressZeroDetected();}
+    if(_amount <= 0) {revert InsufficientFunds();}
+    if(IERC20(tokenAddress).balanceOf(msg.sender) < _amount){revert  InsufficientFunds();}
+        
        
         IERC20(tokenAddress).transferFrom(msg.sender, address(this), _amount);
          balance[msg.sender] += _amount;
@@ -34,8 +39,9 @@ contract SaveERC20{
     }
 
     function withdraw(uint256 _amount) external {
-        require(msg.sender != address(0), "Zero address detected");
-        require(_amount > 0,"Can't deposit zero");
+        if(msg.sender == address(0)){revert AddressZeroDetected();}
+        if(_amount <= 0) {revert InsufficientFunds();}
+
         require(balance[msg.sender] >= _amount);
         balance[msg.sender] -= _amount;
         IERC20(tokenAddress).transfer(msg.sender, _amount); 
@@ -46,21 +52,23 @@ contract SaveERC20{
         return balance[msg.sender];
     }
 
-    function getAnyBalance(address _user) external view onlyOwner returns (uint256){
-
+    function getAnyBalance(address _user) external view  returns (uint256){
+        onlyOwner();
         return balance[_user];
     }
 
-    function getContractBalance() external  view onlyOwner returns (uint256){
-
+    function getContractBalance() external  view returns (uint256){
+        onlyOwner();
         return (IERC20(tokenAddress).balanceOf(address(this)));
     }
 
     function transferFunds(uint256 _amount, address _to) external {
-        require(msg.sender != address(0), "Zero address detected");
-        require(_to != address(0), "Zero address detected");
-        require(_amount > 0,"Can't transfer zero");
-        require(balance[msg.sender] >= _amount);
+     if(msg.sender == address(0)){revert AddressZeroDetected();}
+          if(_to == address(0)){revert CantSendToZeroAddress();}
+    if(_amount <= 0) {revert InsufficientFunds();}
+    if(balance[msg.sender] <= 0) {revert InsufficientFunds();}
+
+       
         balance[msg.sender] -= _amount;
         
 
@@ -69,10 +77,11 @@ contract SaveERC20{
     }
 
     function depositForAnotherUser (uint256 _amount, address _user) external {
-        require(msg.sender != address(0), "Zero address detected");
-        require(_user != address(0), "Zero address detected");
-        require(_amount > 0,"Can't transfer zero");
-        require(IERC20(tokenAddress).balanceOf(msg.sender) >= _amount);
+     if(msg.sender == address(0)){revert AddressZeroDetected();}
+          if(_user == address(0)){revert CantSendToZeroAddress();}
+    if(_amount <= 0) {revert InsufficientFunds();}
+        if(IERC20(tokenAddress).balanceOf(msg.sender) >= _amount) {revert InsufficientFunds();}
+     
 
        IERC20(tokenAddress).transferFrom(msg.sender,address(this),_amount);
         balance[_user] += _amount;
@@ -82,8 +91,13 @@ contract SaveERC20{
     }
 
     function ownerWihdraw(uint256 _amount) external {
-        require(IERC20(tokenAddress).balanceOf(address(this)) >= _amount, "InsuffientFunds");
+        if(IERC20(tokenAddress).balanceOf(address(this)) >= _amount) {revert InsufficientFunds();}
+
         IERC20(tokenAddress).transfer(owner,_amount);
+    }
+
+    function onlyOwner() private view{
+        require(owner == msg.sender);
     }
 
 }

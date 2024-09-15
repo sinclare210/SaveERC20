@@ -105,7 +105,8 @@ describe("SINC", function () {
       
     await expect(
         saveErc20.connect(otherAccount).deposit(depositAmount)
-      ).to.be.revertedWith("Can't deposit zero");
+      ).to.be.revertedWithCustomError(saveErc20 ,"InsufficientFunds");
+
 
 
 
@@ -157,3 +158,5 @@ describe("SINC", function () {
    
  
 });
+
+//SaveERC20Module#SaveERC20 - 0xfc2381629ebF9c121a3ad79d18e01068C328c1d9
