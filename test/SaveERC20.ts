@@ -111,75 +111,49 @@ describe("SINC", function () {
 
     });
 
+   
+
 
 
 
  
   });
 
-  // describe("Withdrawals", function () {
-  //   describe("Validations", function () {
-  //     it("Should revert with the right error if called too soon", async function () {
-  //       const { lock } = await loadFixture(deployOneYearLockFixture);
+  describe("Withdrawals", function () {
+    it("Should deposit correctly", async function () {
+      const {saveErc20, owner, token, otherAccount } = await loadFixture(deploySaveERC20);
 
-  //       await expect(lock.withdraw()).to.be.revertedWith(
-  //         "You can't withdraw yet"
-  //       );
-  //     });
+      const trfAmount = ethers.parseUnits("100",18);
+      await token.transfer(otherAccount, trfAmount);
+      expect(await token.balanceOf(otherAccount)).to.equal(trfAmount);
 
-  //     it("Should revert with the right error if called from another account", async function () {
-  //       const { lock, unlockTime, otherAccount } = await loadFixture(
-  //         deployOneYearLockFixture
-  //       );
+      await token.connect(otherAccount).approve(saveErc20, trfAmount);
+      const otherAccountBalBefore = await token.balanceOf(otherAccount);
+      const depositAmount = ethers.parseUnits("10", 18);
+      await saveErc20.connect(otherAccount).deposit(depositAmount);
+      expect(await token.balanceOf(otherAccount)).to.equal(otherAccountBalBefore - depositAmount);
 
-  //       // We can increase the time in Hardhat Network
-  //       await time.increaseTo(unlockTime);
+      expect(await saveErc20.connect(otherAccount).myBalance()).to.equal(depositAmount);
+      expect(await saveErc20.getContractBalance()).to.equal(depositAmount);
 
-  //       // We use lock.connect() to send a transaction from another account
-  //       await expect(lock.connect(otherAccount).withdraw()).to.be.revertedWith(
-  //         "You aren't the owner"
-  //       );
-  //     });
+      
+        const initalBalBeforWihdrawal = await token.balanceOf(otherAccount);
 
-  //     it("Shouldn't fail if the unlockTime has arrived and the owner calls it", async function () {
-  //       const { lock, unlockTime } = await loadFixture(
-  //         deployOneYearLockFixture
-  //       );
+        const WithdrawAmount = ethers.parseUnits("5", 18);
 
-  //       // Transactions are sent using the first signer by default
-  //       await time.increaseTo(unlockTime);
+        await saveErc20.connect(otherAccount).withdraw(WithdrawAmount);
 
-  //       await expect(lock.withdraw()).not.to.be.reverted;
-  //     });
-  //   });
+        const balanceafterwithdrawal = await token.balanceOf(otherAccount);
 
-  //   describe("Events", function () {
-  //     it("Should emit an event on withdrawals", async function () {
-  //       const { lock, unlockTime, lockedAmount } = await loadFixture(
-  //         deployOneYearLockFixture
-  //       );
+        expect (await saveErc20.getContractBalance()).to.equal(depositAmount - WithdrawAmount);
 
-  //       await time.increaseTo(unlockTime);
+        expect (await saveErc20.connect(otherAccount).myBalance()).to.equal(depositAmount - WithdrawAmount);
+                expect (await saveErc20.connect(otherAccount).myBalance()).to.equal(depositAmount - WithdrawAmount);
+                expect ( await token.balanceOf(otherAccount)).to.equal(initalBalBeforWihdrawal + WithdrawAmount);
+    });
+    
+    });
 
-  //       await expect(lock.withdraw())
-  //         .to.emit(lock, "Withdrawal")
-  //         .withArgs(lockedAmount, anyValue); // We accept any value as `when` arg
-  //     });
-  //   });
-
-  //   describe("Transfers", function () {
-  //     it("Should transfer the funds to the owner", async function () {
-  //       const { lock, unlockTime, lockedAmount, owner } = await loadFixture(
-  //         deployOneYearLockFixture
-  //       );
-
-  //       await time.increaseTo(unlockTime);
-
-  //       await expect(lock.withdraw()).to.changeEtherBalances(
-  //         [owner, lock],
-  //         [lockedAmount, -lockedAmount]
-  //       );
-  //     });
-  //   });
-  // });
+   
+ 
 });
